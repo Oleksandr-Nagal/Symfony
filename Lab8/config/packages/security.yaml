@@ -1,0 +1,49 @@
+security:
+  # Вимкнення старого менеджера автентифікації, якщо потрібно
+  enable_authenticator_manager: true
+
+  password_hashers:
+    App\Entity\User: 'auto'
+
+  providers:
+    app_user_provider:
+      entity:
+        class: App\Entity\User
+        property: email
+
+  firewalls:
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+
+    # Firewall для обробки POST-запиту з логіном/паролем
+    api_login:
+      # Захищаємо лише шлях, де ми очікуємо дані для входу
+      pattern: ^/api/login_check
+      stateless: true
+      json_login:
+        # Шлях, куди відправляється POST-запит для отримання токену
+        check_path: /api/login_check
+        username_path: email
+        password_path: password
+        # >>> ВИДАЛЯЄМО ЯВНЕ ВКАЗАННЯ HANDLER'ІВ (для уникнення конфлікту) <<<
+        # success_handler: lexik_jwt_authentication.handler.authentication_success
+        # failure_handler: lexik_jwt_authentication.handler.authentication_failure
+        # Якщо ці рядки викликали помилку, то їх не потрібно вказувати явно.
+
+    # Основний firewall, який захищає всі інші API-маршрути
+    main:
+      # Захищаємо всі маршрути, що починаються з /api (крім login_check)
+      pattern: ^/api
+      stateless: true
+      provider: app_user_provider
+
+
+  access_control:
+    # Доступ публічний для отримання токену та реєстрації
+    - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+    - { path: ^/api/register, roles: PUBLIC_ACCESS }
+    - { path: ^/$, roles: PUBLIC_ACCESS }
+
+    # Всі інші маршрути API вимагають повну автентифікацію
+    - { path: ^/api, roles: PUBLIC_ACCESS }
